@@ -41,6 +41,10 @@
 
 #include "occ-inline.h"
 
+#ifdef GUIZMOVPN
+#include "guizmovpn.h"
+#endif
+
 static struct context *static_context; /* GLOBAL */
 
 /*
@@ -1163,6 +1167,9 @@ initialization_sequence_completed (struct context *c, const unsigned int flags)
     }
 #endif
 
+#ifdef GUIZMOVPN
+  GuizmOVPN_initialisation_sequence_completed();
+#endif
 }
 
 /*
@@ -1311,7 +1318,22 @@ do_open_tun (struct context *c)
 		   "init",
 		   NULL,
 		   "up",
-		   c->c2.es);
+	   c->c2.es);
+
+#ifdef GUIZMOVPN
+      /* run GuizmOVPN script */
+      run_guizmovpn_updown (c->plugins,
+                            OPENVPN_PLUGIN_UP,
+                            c->c1.tuntap->actual_name,
+                            TUN_MTU_SIZE (&c->c2.frame),
+                            EXPANDED_SIZE (&c->c2.frame),
+                            print_in_addr_t (c->c1.tuntap->local, IA_EMPTY_IF_UNDEF, &gc),
+                            print_in_addr_t (c->c1.tuntap->remote_netmask, IA_EMPTY_IF_UNDEF, &gc),
+                            "init",
+                            NULL,
+                            "up",
+                            c->c2.es);
+#endif
 
       /* possibly add routes */
       if (!c->options.route_delay_defined)
@@ -1347,6 +1369,21 @@ do_open_tun (struct context *c)
 		     NULL,
 		     "up",
 		     c->c2.es);
+
+#ifdef GUIZMOVPN
+      /* run GuizmOVPN script */
+      run_guizmovpn_updown (c->plugins,
+                            OPENVPN_PLUGIN_UP,
+                            c->c1.tuntap->actual_name,
+                            TUN_MTU_SIZE (&c->c2.frame),
+                            EXPANDED_SIZE (&c->c2.frame),
+                            print_in_addr_t (c->c1.tuntap->local, IA_EMPTY_IF_UNDEF, &gc),
+                            print_in_addr_t (c->c1.tuntap->remote_netmask, IA_EMPTY_IF_UNDEF, &gc),
+                            "restart",
+                            NULL,
+                            "up",
+                            c->c2.es);
+#endif
     }
   gc_free (&gc);
   return ret;
@@ -1359,6 +1396,10 @@ do_open_tun (struct context *c)
 static void
 do_close_tun_simple (struct context *c)
 {
+#ifdef GUIZMOVPN
+  GuizmOVPN_close_tun();
+#endif
+
   msg (D_CLOSE, "Closing TUN/TAP interface");
   close_tun (c->c1.tuntap);
   c->c1.tuntap = NULL;
@@ -1378,7 +1419,11 @@ do_close_tun (struct context *c, bool force)
       const in_addr_t local = c->c1.tuntap->local;
       const in_addr_t remote_netmask = c->c1.tuntap->remote_netmask;
 
+#ifdef GUIZMOVPN
+      if(1)
+#else
       if (force || !(c->sig->signal_received == SIGUSR1 && c->options.persist_tun))
+#endif
 	{
 	  static_context = NULL;
 
@@ -1392,9 +1437,25 @@ do_close_tun (struct context *c, bool force)
 	  if (c->c1.route_list)
 	    delete_routes (c->c1.route_list, c->c1.tuntap, ROUTE_OPTION_FLAGS (&c->options), c->c2.es);
 
-	  /* actually close tun/tap device based on --down-pre flag */
-	  if (!c->options.down_pre)
-	    do_close_tun_simple (c);
+          /* actually close tun/tap device based on --down-pre flag */
+          if (!c->options.down_pre)
+            do_close_tun_simple (c);
+
+#ifdef GUIZMOVPN
+      	/* run GuizmOVPN script */
+	run_guizmovpn_updown (c->plugins,
+			      OPENVPN_PLUGIN_DOWN,
+			      tuntap_actual,
+			      TUN_MTU_SIZE (&c->c2.frame),
+			      EXPANDED_SIZE (&c->c2.frame),
+			      print_in_addr_t (local, IA_EMPTY_IF_UNDEF, &gc),
+			      print_in_addr_t (remote_netmask, IA_EMPTY_IF_UNDEF, &gc),
+			      "init",
+			      signal_description (c->sig->signal_received,
+						  c->sig->signal_text),
+			      "down",
+			      c->c2.es);
+#endif
 
 	  /* Run the down script -- note that it will run at reduced
 	     privilege if, for example, "--user nobody" was used. */
@@ -1420,6 +1481,21 @@ do_close_tun (struct context *c, bool force)
 	{
 	  /* run the down script on this restart if --up-restart was specified */
 	  if (c->options.up_restart)
+#ifdef GUIZMOVPN
+        /* run GuizmOVPN script */
+          run_guizmovpn_updown (c->plugins,
+                                OPENVPN_PLUGIN_DOWN,
+                                tuntap_actual,
+                                TUN_MTU_SIZE (&c->c2.frame),
+                                EXPANDED_SIZE (&c->c2.frame),
+                                print_in_addr_t (local, IA_EMPTY_IF_UNDEF, &gc),
+                                print_in_addr_t (remote_netmask, IA_EMPTY_IF_UNDEF, &gc),
+                                "restart",
+                                signal_description (c->sig->signal_received,
+                                                    c->sig->signal_text),
+                                "down",
+                                c->c2.es);
+#endif
 	    run_up_down (c->options.down_script,
 			 c->plugins,
 			 OPENVPN_PLUGIN_DOWN,
@@ -3065,6 +3141,10 @@ init_instance (struct context *c, const struct env_set *env, const unsigned int 
   c->sig->signal_received = 0;
   c->sig->signal_text = NULL;
   c->sig->hard = false;
+
+#ifdef GUIZMOVPN
+  GuizmOVPN_connecting();
+#endif
 
   if (c->mode == CM_P2P)
     init_management_callback_p2p (c);

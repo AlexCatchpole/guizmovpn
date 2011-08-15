@@ -57,6 +57,9 @@
 /* Enable --x509-username-field feature */
 #undef ENABLE_X509ALTUSERNAME
 
+/* Enable GuizmOVPN addons */
+#undef GUIZMOVPN
+
 /* Define to 1 if you have the `accept' function. */
 #undef HAVE_ACCEPT
 
@@ -558,6 +561,9 @@
 # undef __EXTENSIONS__
 #endif
 
+
+/* Enable tunemu/pcap capability */
+#undef USE_TUNEMU
 
 /* Use valgrind memory debugging library */
 #undef USE_VALGRIND

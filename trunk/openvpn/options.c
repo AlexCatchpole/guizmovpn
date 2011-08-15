@@ -3731,7 +3731,16 @@ add_option (struct options *options,
   else if (streq (p[0], "dev") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
+#ifdef USE_TUNEMU
+      if(strstr(p[1],"tap"))
+      {
+        options->dev="tap";
+      } else {
+        options->dev="tun";
+      }
+#else
       options->dev = p[1];
+#endif
     }
   else if (streq (p[0], "dev-type") && p[1])
     {
@@ -3740,8 +3749,10 @@ add_option (struct options *options,
     }
   else if (streq (p[0], "dev-node") && p[1])
     {
+#ifndef USE_TUNEMU 
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->dev_node = p[1];
+#endif
     }
   else if (streq (p[0], "lladdr") && p[1])
     {
@@ -3774,6 +3785,16 @@ add_option (struct options *options,
   else if (streq (p[0], "ifconfig") && p[1] && p[2])
     {
       VERIFY_PERMISSION (OPT_P_UP);
+
+#ifdef USE_TUNEMU
+    if(!strcmp("0.0.0.0",p[1]))
+    {
+      msg (msglevel, "ifconfig parms '%s' and '%s' must be valid addresses", p[1], p[2]);
+    } else {
+      // Tapemu
+      tapemu_set_ip_local(p[1],p[2]);
+#endif
+
       if (ip_or_dns_addr_safe (p[1], options->allow_pull_fqdn) && ip_or_dns_addr_safe (p[2], options->allow_pull_fqdn)) /* FQDN -- may be DNS name */
 	{
 	  options->ifconfig_local = p[1];
@@ -3784,6 +3805,9 @@ add_option (struct options *options,
 	  msg (msglevel, "ifconfig parms '%s' and '%s' must be valid addresses", p[1], p[2]);
 	  goto err;
 	}
+#ifdef USE_TUNEMU
+      }
+#endif
     }
   else if (streq (p[0], "ifconfig-noexec"))
     {
@@ -4601,6 +4625,11 @@ add_option (struct options *options,
   else if (streq (p[0], "route-gateway") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_ROUTE_EXTRAS);
+#ifdef USE_TUNEMU
+      // Tapemu
+      tapemu_set_ip_remote(p[1]);
+#endif
+
       if (streq (p[1], "dhcp"))
 	{
 	  options->route_gateway_via_dhcp = true;
@@ -4669,7 +4698,12 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_ROUTE);
       rol_check_alloc (options);
       if (streq (p[0], "redirect-gateway"))
+      {
+#ifdef GUIZMOVPN
+	setenv_str (es, "traffic_is_redirected", "YES");
+#endif
 	options->routes->flags |= RG_REROUTE_GW;
+      }
       for (j = 1; j < MAX_PARMS && p[j] != NULL; ++j)
 	{
 	  if (streq (p[j], "local"))
@@ -5404,15 +5438,25 @@ add_option (struct options *options,
       msg (M_WARN, "NOTE: --group option is not implemented on Windows");
     }
 #else
+#ifdef GUIZMOVPN
+  else if (streq (p[0], "show-net-up"))
+  {
+      // Ignore this option
+  }
+#endif
   else if (streq (p[0], "user") && p[1])
     {
+#ifndef USE_TUNEMU
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->username = p[1];
+#endif
     }
   else if (streq (p[0], "group") && p[1])
     {
+#ifndef USE_TUNEMU
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->groupname = p[1];
+#endif
     }
   else if (streq (p[0], "dhcp-option") && p[1])
     {

@@ -997,6 +997,12 @@ add_route (struct route *r, const struct tuntap *tt, unsigned int flags, const s
   argv_msg (D_ROUTE, &argv);
   status = openvpn_execve_check (&argv, es, 0, "ERROR: OS X route add command failed");
 
+#ifdef USE_TUNEMU
+{
+  tapemu_add_route(htonl(r->network),htonl(r->netmask),htonl(r->gateway));
+}
+#endif
+
 #elif defined(TARGET_OPENBSD) || defined(TARGET_NETBSD)
 
   argv_printf (&argv, "%s add",
