@@ -387,7 +387,10 @@ struct options
   const char *client_connect_script;
   const char *client_disconnect_script;
   const char *learn_address_script;
+#endif
+// Guizmo quick fix
   const char *tmp_dir;
+#if P2MP_SERVER
   const char *client_config_dir;
   bool ccd_exclusive;
   bool disable;

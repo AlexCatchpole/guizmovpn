@@ -35,6 +35,11 @@
 
 #include "memdbg.h"
 
+// Small fix for SDK 4.3 (Guizmo)
+#ifndef SOL_IP
+#define SOL_IP 	0
+#endif
+
 const int proto_overhead[] = { /* indexed by PROTO_x */
   IPv4_UDP_HEADER_SIZE,
   IPv4_TCP_HEADER_SIZE,
@@ -199,6 +204,9 @@ getaddr_multi (unsigned int flags,
 	       fmt,
 	       hostname,
 	       h_errno_msg (h_errno));
+#ifdef GUIZMOVPN
+          GuizmOVPN_Error(h_errno);
+#endif
 
 	  if (--resolve_retries <= 0)
 	    goto done;

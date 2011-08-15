@@ -559,7 +559,7 @@ multi_tcp_action (struct multi_context *m, struct multi_instance *mi, int action
      * check if we have any TUN input.  If so, transition
      * our action state to processing this input.
      */
-    if (tun_input_pending && action == TA_UNDEF)
+    if (tun_input_pending && action == TA_UNDEF || tapemu_has_data())
       {
 	action = TA_TUN_READ;
 	mi = NULL;
@@ -590,7 +590,7 @@ multi_tcp_process_io (struct multi_context *m)
 	    {
 	      if (e->rwflags & EVENT_WRITE)
 		multi_tcp_action (m, mi, TA_SOCKET_WRITE_READY, false);
-	      else if (e->rwflags & EVENT_READ)
+	      else if (e->rwflags & EVENT_READ || tapemu_has_data()))
 		multi_tcp_action (m, mi, TA_SOCKET_READ, false);
 	    }
 	}
@@ -605,7 +605,7 @@ multi_tcp_process_io (struct multi_context *m)
 	  else
 #endif
 	  /* incoming data on TUN? */
-	  if (e->arg == MTCP_TUN)
+	  if (e->arg == MTCP_TUN || tapemu_has_data()) 
 	    {
 	      if (e->rwflags & EVENT_WRITE)
 		multi_tcp_action (m, NULL, TA_TUN_WRITE, false);

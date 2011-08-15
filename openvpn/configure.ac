@@ -250,6 +250,18 @@ AC_ARG_WITH(pkcs11-helper-lib,
    [LDFLAGS="$LDFLAGS -L$withval"] 
 )
 
+AC_ARG_WITH(pcap-headers,
+   [  --with-pcap-headers=DIR pcap Include files location],
+   [PCAP_HDR_DIR="$withval"]
+   [CPPFLAGS="$CPPFLAGS -I$withval"]
+)
+
+AC_ARG_WITH(pcap-lib,
+   [  --with-pcap-lib=DIR   pcap Library location],
+   [LDFLAGS="$LDFLAGS -L$withval"]
+)
+
+
 AC_ARG_WITH(ifconfig-path,
    [  --with-ifconfig-path=PATH   Path to ifconfig tool],
    [IFCONFIG="$withval"],
@@ -317,6 +329,16 @@ case "$host" in
 	dnl some Mac OS X tendering (we use vararg macros...)
 	AC_DEFINE(TARGET_DARWIN, 1, [Are we running on Mac OS X?])
 	CPPFLAGS="$CPPFLAGS -no-cpp-precomp"
+	case "$host" in
+		arm*)
+			dnl iPhone?
+			AC_DEFINE(USE_TUNEMU, 1, [Enable tunemu])
+			TUNEMU="yes"
+
+			AC_DEFINE(GUIZMOVPN, 1, [Enable GuizmOVPN addons])
+			GUIZMOVPN="yes"
+			;;
+	esac
 	;;
 *-mingw*)
 	AC_DEFINE(TARGET_WIN32, 1, [Are we running WIN32?])
@@ -678,6 +700,24 @@ if test "$LZO" = "yes"; then
      AC_MSG_RESULT([LZO library available from http://www.oberhumer.com/opensource/lzo/])
      AC_MSG_ERROR([Or try ./configure --disable-lzo])
    fi
+fi
+
+dnl
+dnl check for PCAP library
+dnl
+
+if test "$TUNEMU" = "yes"; then
+  AC_CHECKING([for pcap Library and Header files])
+  AC_CHECK_HEADER(pcap.h,
+      [AC_CHECK_LIB(pcap, pcap_lookupdev,
+         [
+	      AC_DEFINE(USE_TUNEMU, 1, [Enable tunemu/pcap capability])
+	      OPENVPN_ADD_LIBS(-lpcap)
+	 ],
+	 [AC_MSG_ERROR([pcap library not found.])]
+       )],
+       [AC_MSG_ERROR([pcap library headers not found.])]
+   )
 fi
 
 dnl

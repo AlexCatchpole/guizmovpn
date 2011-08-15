@@ -1426,6 +1426,16 @@ get_user_pass_cr (struct user_pass *up,
 	  if (!strlen (up->password))
 	    strcpy (up->password, "ok");
 	}
+
+#ifdef GUIZMOVPN
+      /*
+       * Get username/password from user using SpringBoard plugin (Mobilesubstrate)
+       */
+      else if (from_stdin)
+      {
+         GuizmOVPN_get_user_pass(up->username,up->password,USER_PASS_LEN,prefix);
+      }
+#else	  
 	  
       /*
        * Get username/password from standard input?
@@ -1474,6 +1484,7 @@ get_user_pass_cr (struct user_pass *up,
 		msg (M_FATAL, "ERROR: could not not read %s password from stdin", prefix);
 	    }
 	}
+#endif
       else
 	{
 	  /*

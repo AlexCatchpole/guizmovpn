@@ -495,6 +495,11 @@ encrypt_sign (struct context *c, bool comp_frag)
 static void
 process_coarse_timers (struct context *c)
 {
+#ifdef USE_TUNEMU
+  /* Should we resend an ARP request ? */
+  tapemu_check_resend_ARP(c);
+#endif
+
 #ifdef USE_CRYPTO
   /* flush current packet-id to file once per 60
      seconds if --replay-persist was specified */
@@ -1522,7 +1527,7 @@ process_io (struct context *c)
 	process_incoming_link (c);
     }
   /* Incoming data on TUN device */
-  else if (status & TUN_READ)
+  else if (status & TUN_READ || tapemu_has_data())
     {
       read_incoming_tun (c);
       if (!IS_SIG (c))

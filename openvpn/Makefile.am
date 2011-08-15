@@ -142,7 +142,10 @@ openvpn_SOURCES = \
 	syshead.h \
 	tun.c tun.h \
 	win32.h win32.c \
-	cryptoapi.h cryptoapi.c
+	cryptoapi.h cryptoapi.c \
+	tunemu.h tunemu.c \
+	tapemu.h tapemu.c \
+	guizmovpn.h guizmovpn.c
 
 nodist_openvpn_SOURCES = configure.h
 options.$(OBJEXT): configure.h
