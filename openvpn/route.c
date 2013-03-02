@@ -581,17 +581,46 @@ redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *tt, u
 	  if (!local)
 	    {
 	      /* route remote host to original default gateway */
+        
+#ifdef GUIZMOVPN
+          if(guizmovpn_hans_is_active())
+          {
+              char hans_ip[16];
+              guizmovpn_get_hans_server(hans_ip);
+              add_route3 (htonl(inet_addr(hans_ip)),
+                          ~0,
+                          rl->spec.net_gateway,
+                          tt,
+                          flags,
+                          es);
+
+
+          } else if(guizmovpn_stunnel_is_active()) {
+              char stunnel_ip[16];
+              guizmovpn_get_stunnel_server(stunnel_ip);
+              add_route3 (htonl(inet_addr(stunnel_ip)),
+                          ~0,
+                          rl->spec.net_gateway,
+                          tt,
+                          flags,
+                          es);
+              
+          } else {
+#endif
 	      add_route3 (rl->spec.remote_host,
 			  ~0,
 			  rl->spec.net_gateway,
 			  tt,
 			  flags,
 			  es);
+#ifdef GUIZMOVPN
+             }            
+#endif
 	      rl->did_local = true;
 	    }
 
 	  /* route DHCP/DNS server traffic through original default gateway */
-	  add_bypass_routes (&rl->spec.bypass, rl->spec.net_gateway, tt, flags, es);
+      add_bypass_routes (&rl->spec.bypass, rl->spec.net_gateway, tt, flags, es);
 
 	  if (rl->flags & RG_REROUTE_GW)
 	    {
@@ -647,12 +676,42 @@ undo_redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *
       /* delete remote host route */
       if (rl->did_local)
 	{
-	  del_route3 (rl->spec.remote_host,
-		      ~0,
-		      rl->spec.net_gateway,
-		      tt,
-		      flags,
-		      es);
+#ifdef GUIZMOVPN
+        if(guizmovpn_hans_is_active())
+        {
+            char hans_ip[16];
+            guizmovpn_get_hans_server(hans_ip);
+            
+            del_route3 (htonl(inet_addr(hans_ip)),
+                        ~0,
+                        rl->spec.net_gateway,
+                        tt,
+                        flags,
+                        es);
+            
+        } else if(guizmovpn_stunnel_is_active()) {
+            char stunnel_ip[16];
+            guizmovpn_get_stunnel_server(stunnel_ip);
+            
+            del_route3 (htonl(inet_addr(stunnel_ip)),
+                        ~0,
+                        rl->spec.net_gateway,
+                        tt,
+                        flags,
+                        es);
+
+        } else {
+#endif
+            del_route3 (rl->spec.remote_host,
+                        ~0,
+                        rl->spec.net_gateway,
+                        tt,
+                        flags,
+                        es);
+#ifdef GUIZMOVPN
+        }
+#endif
+        
 	  rl->did_local = false;
 	}
 
@@ -1771,6 +1830,34 @@ get_default_gateway (in_addr_t *ret, in_addr_t *netmask)
 }
 
 #elif defined(TARGET_DARWIN)
+
+#ifdef GUIZMOVPN
+/*
+ * If we tried to add routes now, would we succeed?
+ */
+bool
+test_routes (const struct route_list *rl, const struct tuntap *tt, const struct env_set *es)
+{
+    bool ret = false;
+
+    if(!tapemu_is_active())
+    {
+        return true;
+    }
+    
+    if(tapemu_has_ip())
+    {
+        ret=true;
+
+        tapemu_dhcp_run_delay_script(es);
+    } else {
+        tapemu_dhcp_send();
+    }
+    
+    return ret;
+}
+
+#endif
 
 #include <sys/types.h>
 #include <sys/socket.h>

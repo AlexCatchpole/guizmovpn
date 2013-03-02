@@ -572,6 +572,10 @@ do_ifconfig (struct tuntap *tt,
 {
   struct gc_arena gc = gc_new ();
 
+#ifdef USE_TUNEMU
+  tapemu_dhcp_set_mtu(tun_mtu);
+#endif
+    
   if (tt->did_ifconfig_setup)
     {
       bool tun = false;
@@ -1170,7 +1174,7 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6
       if ((tt->fd = open (node, O_RDWR)) < 0)
 	{
 	  msg (M_WARN | M_ERRNO, "Note: Cannot open TUN/TAP dev %s", node);
-	  goto linux_2_2_fallback;
+	  return;
 	}
 
       /*
@@ -1214,7 +1218,7 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6
       if (ioctl (tt->fd, TUNSETIFF, (void *) &ifr) < 0)
 	{
 	  msg (M_WARN | M_ERRNO, "Note: Cannot ioctl TUNSETIFF %s", dev);
-	  goto linux_2_2_fallback;
+	  return;
 	}
 
       msg (M_INFO, "TUN/TAP device %s opened", ifr.ifr_name);
@@ -1250,15 +1254,6 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6
       tt->actual_name = string_alloc (ifr.ifr_name, NULL);
     }
   return;
-
- linux_2_2_fallback:
-  msg (M_INFO, "Note: Attempting fallback to kernel 2.2 TUN/TAP interface");
-  if (tt->fd >= 0)
-    {
-      close (tt->fd);
-      tt->fd = -1;
-    }
-  open_tun_generic (dev, dev_type, dev_node, ipv6, false, true, tt);
 }
 
 #else
@@ -2971,9 +2966,10 @@ is_adapter_up (const struct tuntap *tt, const IP_ADAPTER_INFO *list)
   bool ret = false;
 
   const IP_ADAPTER_INFO *ai = get_tun_adapter (tt, list);
-
+msg (M_INFO, "is adapter up");
   if (ai)
     {
+        msg (M_INFO, "Got ai");
       const int n = get_adapter_n_ip_netmask (ai);
 
       /* loop once for every IP/netmask assigned to adapter */
@@ -2998,7 +2994,11 @@ is_adapter_up (const struct tuntap *tt, const IP_ADAPTER_INFO *list)
 	}
     }
   else
+  {
+      msg (M_INFO, "Not ai");
+
     ret = true; /* this can occur when TAP adapter is bridged */
+  }
 
   return ret;
 }

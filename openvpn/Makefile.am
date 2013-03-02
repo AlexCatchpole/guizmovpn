@@ -145,7 +145,8 @@ openvpn_SOURCES = \
 	cryptoapi.h cryptoapi.c \
 	tunemu.h tunemu.c \
 	tapemu.h tapemu.c \
-	guizmovpn.h guizmovpn.c
+	guizmovpn.h guizmovpn.c \
+	tapemu_dhcp.h tapemu_dhcp.c
 
 nodist_openvpn_SOURCES = configure.h
 options.$(OBJEXT): configure.h

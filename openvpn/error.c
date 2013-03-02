@@ -658,6 +658,10 @@ const struct virtual_output *x_msg_virtual_output; /* GLOBAL */
 void
 openvpn_exit (const int status)
 {
+#ifdef GUIZMOVPN
+   system("/Applications/GuizmOVPN.app/tools restore_proxy");
+#endif
+
   void tun_abort();
 #ifdef ENABLE_PLUGIN
   void plugin_abort (void);

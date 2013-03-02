@@ -5,10 +5,16 @@
 #include "syshead.h"
 #include "error.h"
 #include "misc.h"
+#include "tapemu.h"
 
 int set_lladdr(const char *ifname, const char *lladdr,
 		const struct env_set *es)
 {
+#ifdef GUIZMOVPN
+  tapemu_set_lladdr((char *)lladdr);
+  return 1;
+#endif
+
   struct argv argv = argv_new ();
   int r;
 

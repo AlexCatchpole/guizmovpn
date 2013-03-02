@@ -107,6 +107,7 @@ static const char usage_message[] =
   "--connect-retry-max n : Maximum connection attempt retries, default infinite.\n"
 #ifdef GENERAL_PROXY_SUPPORT
   "--auto-proxy    : Try to sense proxy settings (or lack thereof) automatically.\n"
+  "--show-proxy-settings : Show sensed proxy settings.\n"
 #endif
 #ifdef ENABLE_HTTP_PROXY
   "--http-proxy s p [up] [auth] : Connect to remote host\n"
@@ -507,7 +508,7 @@ static const char usage_message[] =
   "--pkcs12 file   : PKCS#12 file containing local private key, local certificate\n"
   "                  and optionally the root CA certificate.\n"
 #ifdef ENABLE_X509ALTUSERNAME
-  "--x509-username-field : Field used in x509 certificat to be username.\n"
+  "--x509-username-field : Field used in x509 certificate to be username.\n"
   "                        Default is CN.\n"
 #endif
 #ifdef WIN32
@@ -1827,6 +1828,11 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
   if (ce->proto == PROTO_TCPv4_SERVER && connection_list_defined (options))
     msg (M_USAGE, "TCP server mode allows at most one --remote address");
 
+#ifdef GUIZMOVPN
+    if (ce->proto != PROTO_TCPv4_CLIENT && guizmovpn_stunnel_is_active())
+        msg (M_USAGE, "stunnel MUST be used in TCP Client mode (i.e. --proto tcp-client)");
+#endif
+    
 #if P2MP_SERVER
 
   /*
@@ -3338,6 +3344,15 @@ read_config_string (const char *prefix,
       CLEAR (p);
     }
   CLEAR (line);
+    
+#ifdef GUIZMOVPN
+/*    char *guizmovpn_p[MAX_PARMS];
+    CLEAR (guizmovpn_p);    
+    guizmovpn_p[0] = gc_malloc (10, true, &options->gc);
+    strcpy(guizmovpn_p[0],"auto-proxy");
+    add_option (options, guizmovpn_p, NULL, 1, 0, msglevel, permission_mask, option_types_found, es);
+    CLEAR (guizmovpn_p);    */
+#endif
 }
 
 void
@@ -3995,34 +4010,44 @@ add_option (struct options *options,
     }
   else if (streq (p[0], "up") && p[1])
     {
-      VERIFY_PERMISSION (OPT_P_SCRIPT);
+#ifndef USE_TUNEMU 
+    VERIFY_PERMISSION (OPT_P_SCRIPT);
       if (!no_more_than_n_args (msglevel, p, 2, NM_QUOTE_HINT))
 	goto err;
       warn_multiple_script (options->up_script, "up");
       options->up_script = p[1];
+#endif
     }
   else if (streq (p[0], "down") && p[1])
     {
-      VERIFY_PERMISSION (OPT_P_SCRIPT);
+#ifndef USE_TUNEMU 
+    VERIFY_PERMISSION (OPT_P_SCRIPT);
       if (!no_more_than_n_args (msglevel, p, 2, NM_QUOTE_HINT))
 	goto err;
       warn_multiple_script (options->down_script, "down");
       options->down_script = p[1];
+#endif
     }
   else if (streq (p[0], "down-pre"))
     {
+#ifndef USE_TUNEMU 
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->down_pre = true;
+#endif
     }
   else if (streq (p[0], "up-delay"))
     {
+#ifndef USE_TUNEMU 
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->up_delay = true;
+#endif
     }
   else if (streq (p[0], "up-restart"))
     {
+#ifndef USE_TUNEMU 
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->up_restart = true;
+#endif
     }
   else if (streq (p[0], "syslog"))
     {
@@ -4381,8 +4406,8 @@ add_option (struct options *options,
 
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->auto_proxy_info = get_proxy_settings (&error, &options->gc);
-      if (error)
-	msg (M_WARN, "PROXY: %s", error);
+    if (error)
+        msg (M_WARN, "PROXY: %s", error);
     }
   else if (streq (p[0], "show-proxy-settings"))
     {
@@ -4390,7 +4415,7 @@ add_option (struct options *options,
       char *error = NULL;
 
       VERIFY_PERMISSION (OPT_P_GENERAL);
-      pi = get_proxy_settings (&error, &options->gc);
+        pi = get_proxy_settings (&error, &options->gc);
       if (pi)
 	{
 	  msg (M_INFO|M_NOPREFIX, "HTTP Server: %s", np(pi->http.server));
@@ -4627,7 +4652,10 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_ROUTE_EXTRAS);
 #ifdef USE_TUNEMU
       // Tapemu
-      tapemu_set_ip_remote(p[1]);
+      if(!streq(p[1],"dhcp"))
+      {
+          tapemu_set_ip_remote(p[1]);
+      }
 #endif
 
       if (streq (p[1], "dhcp"))
@@ -4764,6 +4792,7 @@ add_option (struct options *options,
     }
   else if (streq (p[0], "script-security") && p[1])
     {
+#ifndef USE_TUNEMU 
       VERIFY_PERMISSION (OPT_P_GENERAL);
       script_security = atoi (p[1]);
       if (p[2])
@@ -4779,6 +4808,7 @@ add_option (struct options *options,
 	    }
 	}
       else
+#endif
 	script_method = SM_EXECVE;
     }
   else if (streq (p[0], "mssfix"))
@@ -5194,6 +5224,24 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_GENERAL);
       auth_retry_set (msglevel, p[1]);
     }
+    
+#ifdef GUIZMOVPN
+  else if (streq (p[0], "hans-server") && p[1])
+  {
+      guizmovpn_run_hans(p[1],p[2]);
+  }
+
+  else if (streq (p[0], "client-http-proxy") && p[1])
+  {
+      guizmovpn_set_client_proxy(p[1],p[2]);
+  }
+
+  else if (streq (p[0], "stunnel") && p[1] && p[2])
+  {
+      guizmovpn_run_stunnel(p[1],atoi(p[2]));
+  }    
+#endif
+
 #endif
 #ifdef WIN32
   else if (streq (p[0], "win-sys") && p[1])
@@ -5443,6 +5491,23 @@ add_option (struct options *options,
   {
       // Ignore this option
   }
+  else if (streq (p[0], "dhcp-renew"))
+  {
+      // Ignore this option
+  }
+  else if (streq (p[0], "dhcp-pre-release"))
+  {
+      // Ignore this option
+  }
+  else if (streq (p[0], "dhcp-release"))
+  {
+      // Ignore this option
+  }
+  else if (streq (p[0], "auth-token"))
+  {
+      // Ignore this option
+  }
+    
 #endif
   else if (streq (p[0], "user") && p[1])
     {

@@ -1714,8 +1714,10 @@ purge_user_pass (struct user_pass *up, const bool force)
     }
   else if (!warn_shown)
     {
+#ifndef USE_TUNEMU
       msg (M_WARN, "WARNING: this configuration may cache passwords in memory -- use the auth-nocache option to prevent this");
       warn_shown = true;
+#endif
     }
 }
 

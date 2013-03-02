@@ -31,6 +31,7 @@
 
 #include "tun.h"
 #include "misc.h"
+#include "syshead.h"
 
 #define MAX_ROUTES_DEFAULT 100
 
@@ -186,14 +187,16 @@ void print_route_options (const struct route_option_list *rol,
 void print_routes (const struct route_list *rl, int level);
 
 #ifdef WIN32
-
 void show_routes (int msglev);
 bool test_routes (const struct route_list *rl, const struct tuntap *tt);
 bool add_route_ipapi (const struct route *r, const struct tuntap *tt);
 bool del_route_ipapi (const struct route *r, const struct tuntap *tt);
 
+#elif GUIZMOVPN
+bool test_routes (const struct route_list *rl, const struct tuntap *tt, const struct env_set *es);
+
 #else
-static inline bool test_routes (const struct route_list *rl, const struct tuntap *tt) { return true; }
+static inline bool test_routes (const struct route_list *rl, const struct tuntap *tt) {return true; }
 #endif
 
 bool netmask_to_netbits (const in_addr_t network, const in_addr_t netmask, int *netbits);

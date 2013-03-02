@@ -1725,6 +1725,16 @@ socket_restart_pause (struct context *c)
   bool proxy = false;
   int sec = 2;
 
+#ifdef GUIZMOVPN
+    // If auto-proxy is set, run again the proxy detection
+    if(guizmovpn_autoproxy_is_set())
+    {
+        char *error = NULL;
+        c->options.auto_proxy_info = get_proxy_settings (&error, &c->options.gc);
+    }
+
+#endif
+
 #ifdef ENABLE_HTTP_PROXY
   if (c->options.ce.http_proxy_options)
     proxy = true;
@@ -2366,12 +2376,14 @@ do_option_warnings (struct context *c)
     msg (M_WARN, "NOTE: --connect-timeout option is not supported on this OS");
 #endif
 
+#ifndef USE_TUNEMU 
   if (script_security >= SSEC_SCRIPTS)
     msg (M_WARN, "NOTE: the current --script-security setting may allow this configuration to call user-defined scripts");
   else if (script_security >= SSEC_PW_ENV)
     msg (M_WARN, "WARNING: the current --script-security setting may allow passwords to be passed to scripts via environmental variables");
   else
     msg (M_WARN, "NOTE: " PACKAGE_NAME " 2.1 requires '--script-security 2' or higher to call user-defined scripts or executables");
+#endif
 
   if (script_method == SM_SYSTEM)
     msg (M_WARN, "NOTE: --script-security method='system' is deprecated due to the fact that passed parameters will be subject to shell expansion");

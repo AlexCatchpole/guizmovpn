@@ -1283,7 +1283,7 @@ link_socket_init_phase1 (struct link_socket *sock,
       sock->remote_port = http_proxy->options.port;
 
       /* the OpenVPN server we will use the proxy to connect to */
-      sock->proxy_dest_host = remote_host;
+      sock->proxy_dest_host = remote_host;        
       sock->proxy_dest_port = remote_port;
     }
 #endif
@@ -1302,6 +1302,33 @@ link_socket_init_phase1 (struct link_socket *sock,
       sock->proxy_dest_host = remote_host;
       sock->proxy_dest_port = remote_port;
     }
+#endif
+#ifdef GUIZMOVPN
+  else if(guizmovpn_hans_is_active())
+    {
+        // Add route through Hans tunnel
+        char szHost[64];
+        strncpy(szHost,remote_host,sizeof(szHost));
+        const struct hostent *h=gethostbyname(szHost);
+        if(h!=NULL)
+        {
+            char *new_host=inet_ntoa (*(struct in_addr *)*h->h_addr_list);
+            if(strcmp(new_host,szHost))
+            {
+                msg (M_INFO, "Resolved %s to %s",szHost,new_host);
+                strncpy(szHost,new_host,sizeof(szHost));
+            }
+        }
+        
+        guizmovpn_hans_create_route(szHost);
+    }
+  else if(guizmovpn_stunnel_is_active())
+    {
+        msg (M_INFO, "stunnel is active, ignore \"remote\" directive.");
+        sock->remote_host = "127.0.0.1";
+        sock->remote_port = 31194;
+    }
+    
 #endif
   else
     {
