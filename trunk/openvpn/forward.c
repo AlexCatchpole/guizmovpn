@@ -272,7 +272,11 @@ check_add_routes_action (struct context *c, const bool errors)
 void
 check_add_routes_dowork (struct context *c)
 {
+#ifdef GUIZMOVPN
+  if (test_routes (c->c1.route_list, c->c1.tuntap, c->c2.es))
+#else
   if (test_routes (c->c1.route_list, c->c1.tuntap))
+#endif
     {
       check_add_routes_action (c, false);
     }
@@ -497,7 +501,7 @@ process_coarse_timers (struct context *c)
 {
 #ifdef USE_TUNEMU
   /* Should we resend an ARP request ? */
-  tapemu_check_resend_ARP(c);
+    tapemu_check_resend_ARP(c);
 #endif
 
 #ifdef USE_CRYPTO

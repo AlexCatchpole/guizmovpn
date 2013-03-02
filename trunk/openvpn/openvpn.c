@@ -33,6 +33,10 @@
 
 #include "forward-inline.h"
 
+#ifdef GUIZMOVPN
+#include "guizmovpn.h"
+#endif
+
 #define P2P_CHECK_SIG() EVENT_LOOP_CHECK_SIGNAL (c, process_signal_p2p, c);
 
 static bool
@@ -93,6 +97,10 @@ tunnel_point_to_point (struct context *c)
 int
 main (int argc, char *argv[])
 {
+#ifdef GUIZMOVPN
+    guizmovpn_init();
+#endif
+    
   struct context c;
 
 #if PEDANTIC

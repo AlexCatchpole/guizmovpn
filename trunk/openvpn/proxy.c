@@ -34,6 +34,7 @@
 #include "base64.h"
 #include "httpdigest.h"
 #include "ntlm.h"
+#include "guizmovpn.h"
 
 #ifdef WIN32
 #include "ieproxy.h"
@@ -525,6 +526,19 @@ establish_http_proxy_passthru (struct http_proxy_info *p,
   int nparms;
   bool ret = false;
   bool processed = false;
+
+#ifdef GUIZMOVPN
+    const struct hostent *h=gethostbyname(host);
+    if(h!=NULL)
+    {
+        char *new_host=inet_ntoa (*(struct in_addr *)*h->h_addr_list);
+        if(strcmp(new_host,host))
+        {
+            msg (M_INFO, "Resolved %s to %s",host,new_host);
+            host=new_host;
+        }
+    }
+#endif
 
   /* get user/pass if not previously given or if --auto-proxy is being used */
   if (p->auth_method == HTTP_AUTH_BASIC
@@ -1111,6 +1125,11 @@ get_proxy_settings (char **err, struct gc_arena *gc)
 struct auto_proxy_info *
 get_proxy_settings (char **err, struct gc_arena *gc)
 {
+    
+#ifdef GUIZMOVPN
+    return guizmovpn_get_proxy_settings(err,gc);
+#endif
+
 #if 1
   if (err)
     *err = string_alloc ("PROXY: automatic detection not supported on this OS", gc);

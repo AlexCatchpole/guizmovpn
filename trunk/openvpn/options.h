@@ -355,6 +355,8 @@ struct options
   struct plugin_option_list *plugin_list;
 #endif
 
+  const char *tmp_dir;
+
 #if P2MP
 
 #if P2MP_SERVER
@@ -387,10 +389,6 @@ struct options
   const char *client_connect_script;
   const char *client_disconnect_script;
   const char *learn_address_script;
-#endif
-// Guizmo quick fix
-  const char *tmp_dir;
-#if P2MP_SERVER
   const char *client_config_dir;
   bool ccd_exclusive;
   bool disable;
@@ -546,6 +544,7 @@ struct options
   bool show_net_up;
   int route_method;
 #endif
+    
 };
 
 #define streq(x, y) (!strcmp((x), (y)))
