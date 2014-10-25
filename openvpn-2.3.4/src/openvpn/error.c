@@ -57,6 +57,10 @@
 #endif
 #endif
 
+#ifdef GUIZMOVPN
+#include "guizmovpn.h"
+#endif
+
 /* Globals */
 unsigned int x_debug_level; /* GLOBAL */
 
@@ -608,6 +612,10 @@ x_check_status (int status,
 
   if (status < 0)
     {
+#ifdef GUIZMOVPN
+        GuizmOVPN_Error(my_errno);
+#endif
+        
       struct gc_arena gc = gc_new ();
 #if EXTENDED_SOCKET_ERROR_CAPABILITY
       /* get extended socket error message and possible PMTU hint from OS */
@@ -667,6 +675,10 @@ const struct virtual_output *x_msg_virtual_output; /* GLOBAL */
 void
 openvpn_exit (const int status)
 {
+#ifdef GUIZMOVPN
+    GuizmOVPN_RestoreProxy();
+#endif
+    
   if (!forked)
     {
       void tun_abort();

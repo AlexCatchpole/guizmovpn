@@ -46,6 +46,10 @@
 
 #include "memdbg.h"
 
+#ifdef GUIZMOVPN
+#include "guizmovpn.h"
+#endif
+
 #ifdef ENABLE_IPROUTE
 const char *iproute_path = IPROUTE_PATH; /* GLOBAL */
 #endif
@@ -124,6 +128,9 @@ run_up_down (const char *command,
       argv_reset (&argv);
     }
 
+#ifdef GUIZMOVPN
+    GuizmOVPN_updown(command, plugins, plugin_type, arg, dev_type, tun_mtu, link_mtu, ifconfig_local, ifconfig_remote, context, signal_text, script_type, es);    
+#endif
   gc_free (&gc);
 }
 
@@ -1088,6 +1095,9 @@ get_user_pass_cr (struct user_pass *up,
        */
       else if (from_stdin)
 	{
+#ifdef GUIZMOVPN
+      GuizmOVPN_get_user_pass(up->username,up->password,USER_PASS_LEN,prefix);
+#else
 #ifdef ENABLE_CLIENT_CR
 	  if (auth_challenge && (flags & GET_USER_PASS_DYNAMIC_CHALLENGE))
 	    {
@@ -1151,6 +1161,7 @@ get_user_pass_cr (struct user_pass *up,
 		}
 #endif
 	    }
+#endif
 	}
       else
 	{
@@ -1328,8 +1339,10 @@ purge_user_pass (struct user_pass *up, const bool force)
     }
   else if (!warn_shown)
     {
+#ifndef GUIZMOVPN
       msg (M_WARN, "WARNING: this configuration may cache passwords in memory -- use the auth-nocache option to prevent this");
       warn_shown = true;
+#endif
     }
 }
 

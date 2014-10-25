@@ -503,6 +503,9 @@ init_tun (const char *dev,       /* --dev option */
 	{
 	  tt->broadcast = generate_ifconfig_broadcast_addr (tt->local, tt->remote_netmask);
 	  ifconfig_broadcast = print_in_addr_t (tt->broadcast, 0, &gc);
+#ifdef USE_TAPEMU
+      tapemu_set_local_ip(htonl(tt->local), htonl(tt->remote_netmask));
+#endif
 	}
 
       /*
@@ -1042,7 +1045,11 @@ do_ifconfig (struct tuntap *tt,
 			  );
       else
         {
+#ifdef USE_TAPEMU
+          if(true)
+#else
           if (tt->topology == TOP_SUBNET)
+#endif
     	    argv_printf (&argv,
 			      "%s %s %s %s netmask %s mtu %d up",
 			      IFCONFIG_PATH,
@@ -1068,7 +1075,11 @@ do_ifconfig (struct tuntap *tt,
       tt->did_ifconfig = true;
 
       /* Add a network route for the local tun interface */
+#ifdef USE_TAPEMU
+      if (!tun)
+#else
       if (!tun && tt->topology == TOP_SUBNET)
+#endif
 	{
 	  struct route_ipv4 r;
 	  CLEAR (r);
@@ -2622,16 +2633,21 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tu
 {
 #ifdef HAVE_NET_IF_UTUN_H
   /* If dev_node does not start start with utun assume regular tun/tap */
-  if ((!dev_node && tt->type==DEV_TYPE_TUN) ||
+#ifdef USE_TAPEMU
+    if ((!dev_node) ||
+#else
+    if ((!dev_node && tt->type==DEV_TYPE_TUN) ||
+#endif
       (dev_node && !strncmp (dev_node, "utun", 4)))
     {
 
       /* Check if user has specific dev_type tap and forced utun with
          dev-node utun */
+#ifndef USE_TAPEMU
       if (tt->type!=DEV_TYPE_TUN)
         msg (M_FATAL, "Cannot use utun devices with --dev-type %s",
              dev_type_string (dev, dev_type));
-
+#endif
       /* Try utun first and fall back to normal tun if utun fails
          and dev_node is not specified */
       open_darwin_utun(dev, dev_type, dev_node, tt);
@@ -2697,23 +2713,43 @@ close_tun (struct tuntap* tt)
 int
 write_tun (struct tuntap* tt, uint8_t *buf, int len)
 {
+#ifdef USE_TAPEMU
+  if(tt->type==DEV_TYPE_TAP)
+  {
+    return tapemu_write(tt->fd, buf, len);
+  } else {
+#endif
 #ifdef HAVE_NET_IF_UTUN_H
   if (tt->is_utun)
     return write_tun_header (tt, buf, len);
   else
 #endif
     return write (tt->fd, buf, len);
+#ifdef USE_TAPEMU
+  }
+#endif
 }
 
 int
 read_tun (struct tuntap* tt, uint8_t *buf, int len)
 {
+#ifdef USE_TAPEMU
+  if(tt->type==DEV_TYPE_TAP)
+  {
+    int ret=tapemu_read(tt->fd, buf, len);
+    return ret;
+  } else {
+#endif
 #ifdef HAVE_NET_IF_UTUN_H
   if (tt->is_utun)
     return read_tun_header (tt, buf, len);
   else
 #endif
     return read (tt->fd, buf, len);
+      
+#ifdef USE_TAPEMU
+  }
+#endif
 }
 
 #elif defined(WIN32)

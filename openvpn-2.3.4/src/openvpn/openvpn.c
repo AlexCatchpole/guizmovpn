@@ -39,6 +39,10 @@
 
 #include "forward-inline.h"
 
+#ifdef GUIZMOVPN
+#include "guizmovpn.h"
+#endif
+
 #define P2P_CHECK_SIG() EVENT_LOOP_CHECK_SIGNAL (c, process_signal_p2p, c);
 
 static bool
@@ -131,6 +135,10 @@ static
 int
 openvpn_main (int argc, char *argv[])
 {
+#ifdef GUIZMOVPN
+  GuizmOVPN_init();
+#endif
+    
   struct context c;
 
 #if PEDANTIC
@@ -180,7 +188,7 @@ openvpn_main (int argc, char *argv[])
 	  /* initialize management subsystem */
 	  init_management (&c);
 #endif
-
+        
 	  /* initialize options to default state */
 	  init_options (&c.options, true);
 
@@ -215,6 +223,11 @@ openvpn_main (int argc, char *argv[])
 	  /* sanity check on options */
 	  options_postprocess (&c.options);
 
+#ifdef USE_TAPEMU
+      /* initialize tapemu */
+      init_tapemu (&c);
+#endif
+        
 	  /* show all option settings */
 	  show_settings (&c.options);
 

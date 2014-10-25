@@ -190,6 +190,10 @@ struct tuntap
   /* Some TUN/TAP drivers like to be ioctled for mtu
      after open */
   int post_open_mtu;
+
+#ifdef USE_TAPEMU
+  unsigned char lladdr[6];
+#endif
 };
 
 static inline bool

@@ -726,4 +726,11 @@ socket_defined (const socket_descriptor_t sd)
 #define ENABLE_MEMSTATS
 #endif
 
+/*
+ * TAP emulation
+ */
+#ifdef USE_TAPEMU
+#include "tapemu.h"
+#endif
+
 #endif

@@ -73,7 +73,19 @@ struct http_proxy_info {
 struct http_proxy_options *init_http_proxy_options_once (struct http_proxy_options **hpo,
                                                          struct gc_arena *gc);
 
+#ifdef GUIZMOVPN
+struct auto_proxy_info_entry {
+    char *server;
+    int port;
+};
+struct auto_proxy_info {
+    struct auto_proxy_info_entry http;
+    struct auto_proxy_info_entry socks;
+};
+struct http_proxy_info *http_proxy_new (const struct http_proxy_options *o, struct auto_proxy_info *auto_proxy_info);
+#else
 struct http_proxy_info *http_proxy_new (const struct http_proxy_options *o);
+#endif
 
 void http_proxy_close (struct http_proxy_info *hp);
 
