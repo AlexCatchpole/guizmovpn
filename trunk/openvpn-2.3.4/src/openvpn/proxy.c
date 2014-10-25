@@ -436,11 +436,52 @@ get_pa_var (const char *key, const char *pa, struct gc_arena *gc)
 }
 
 struct http_proxy_info *
+#ifdef GUIZMOVPN
+http_proxy_new (const struct http_proxy_options *o, struct auto_proxy_info *auto_proxy_info)
+#else
 http_proxy_new (const struct http_proxy_options *o)
+#endif
 {
   struct http_proxy_info *p;
   struct http_proxy_options opt;
 
+#ifdef GUIZMOVPN
+    if (auto_proxy_info)
+    {
+        if (o && o->server)
+        {
+            /* if --http-proxy explicitly given, disable auto-proxy */
+            auto_proxy_info = NULL;
+        }
+        else
+        {
+            /* if no --http-proxy explicitly given and no auto settings, fail */
+            if (!auto_proxy_info->http.server)
+                return NULL;
+            
+            if (o)
+            {
+                opt = *o;
+            }
+            else
+            {
+                CLEAR (opt);
+                
+                /* These settings are only used for --auto-proxy */
+                opt.timeout = 5;
+                opt.http_version = "1.0";
+            }
+            
+            opt.server = auto_proxy_info->http.server;
+            opt.port = auto_proxy_info->http.port;
+            if (!opt.auth_retry)
+                opt.auth_retry = PAR_ALL;
+            
+            o = &opt;
+        }
+    }
+#endif
+    
   if (!o || !o->server)
     msg (M_FATAL, "HTTP_PROXY: server not specified");
 
@@ -506,6 +547,19 @@ establish_http_proxy_passthru (struct http_proxy_info *p,
   bool ret = false;
   bool processed = false;
 
+#ifdef GUIZMOVPN
+    const struct hostent *h=gethostbyname(host);
+    if(h!=NULL)
+    {
+        char *new_host=inet_ntoa (*(struct in_addr *)*h->h_addr_list);
+        if(strcmp(new_host,host))
+        {
+            msg (M_INFO, "Resolved %s to %s",host,new_host);
+            host=new_host;
+        }
+    }
+#endif
+    
   /* get user/pass if not previously given */
   if (p->auth_method == HTTP_AUTH_BASIC
       || p->auth_method == HTTP_AUTH_DIGEST

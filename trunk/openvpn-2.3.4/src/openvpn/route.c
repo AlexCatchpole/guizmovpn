@@ -1511,6 +1511,13 @@ add_route (struct route_ipv4 *r,
 #endif
 
  done:
+    
+#ifdef USE_TAPEMU
+    if(tt->type==DEV_TYPE_TAP)
+    {
+        tapemu_add_route(htonl(r->network),htonl(r->netmask),htonl(r->gateway));
+    }
+#endif    
   if (status)
     r->flags |= RT_ADDED;
   else

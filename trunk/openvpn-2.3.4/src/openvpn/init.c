@@ -48,6 +48,10 @@
 
 #include "occ-inline.h"
 
+#ifdef GUIZMOVPN
+#include "guizmovpn.h"
+#endif
+
 static struct context *static_context; /* GLOBAL */
 
 /*
@@ -454,10 +458,18 @@ init_proxy_dowork (struct context *c)
   uninit_proxy_dowork (c);
 
 #ifdef ENABLE_HTTP_PROXY
+#ifdef GUIZMOVPN
+  if (c->options.ce.http_proxy_options || c->options.auto_proxy_info)
+#else
   if (c->options.ce.http_proxy_options)
+#endif
     {
       /* Possible HTTP proxy user/pass input */
+#ifdef GUIZMOVPN
+      c->c1.http_proxy = http_proxy_new (c->options.ce.http_proxy_options, c->options.auto_proxy_info);
+#else
       c->c1.http_proxy = http_proxy_new (c->options.ce.http_proxy_options);
+#endif
       if (c->c1.http_proxy)
 	{
 	  did_http = true;
@@ -1293,6 +1305,10 @@ initialization_sequence_completed (struct context *c, const unsigned int flags)
 	management_post_tunnel_open (management, tun_local);
     }
 #endif
+    
+#ifdef GUIZMOVPN
+    GuizmOVPN_initialization_sequence_completed();
+#endif
 }
 
 /*
@@ -1436,8 +1452,11 @@ do_open_tun (struct context *c)
 
       /* set the hardware address */
       if (c->options.lladdr)
+#ifdef USE_TAPEMU
+      tapemu_set_lladdr(c->options.lladdr);
+#else
 	  set_lladdr(c->c1.tuntap->actual_name, c->options.lladdr, c->c2.es);
-
+#endif
       /* do ifconfig */
       if (!c->options.ifconfig_noexec
 	  && ifconfig_order () == IFCONFIG_AFTER_TUN_OPEN)
@@ -1508,6 +1527,10 @@ do_open_tun (struct context *c)
 static void
 do_close_tun_simple (struct context *c)
 {
+#ifdef GUIZMOVPN
+    GuizmOVPN_close_tun();
+#endif
+    
   msg (D_CLOSE, "Closing TUN/TAP interface");
   close_tun (c->c1.tuntap);
   c->c1.tuntap = NULL;
@@ -1527,7 +1550,11 @@ do_close_tun (struct context *c, bool force)
       const in_addr_t local = c->c1.tuntap->local;
       const in_addr_t remote_netmask = c->c1.tuntap->remote_netmask;
 
+#ifdef GUIZMOVPN
+      if(1)
+#else
       if (force || !(c->sig->signal_received == SIGUSR1 && c->options.persist_tun))
+#endif
 	{
 	  static_context = NULL;
 
@@ -3101,6 +3128,16 @@ do_inherit_plugins (struct context *c, const struct context *src)
     }
 }
 
+#endif
+
+#ifdef USE_TAPEMU
+void init_tapemu (struct context *c)
+{
+    if (dev_type_enum (c->options.dev, c->options.dev_type) == DEV_TYPE_TAP)
+      {
+          tapemu_init();
+      }
+}
 #endif
 
 #ifdef ENABLE_MANAGEMENT

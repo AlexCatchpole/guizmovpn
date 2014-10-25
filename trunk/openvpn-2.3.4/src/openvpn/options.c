@@ -60,6 +60,10 @@
 
 #include "memdbg.h"
 
+#ifdef GUIZMOVPN
+#include "guizmovpn.h"
+#endif
+
 const char title_string[] =
   PACKAGE_STRING
   " " TARGET_ALIAS
@@ -870,6 +874,10 @@ init_options (struct options *o, const bool init_gc)
   }
 #endif /* WIN32 */
 #endif /* P2MP_SERVER */
+    
+#ifdef GUIZMOVPN
+    o->auto_proxy_info=NULL;
+#endif
 }
 
 void
@@ -1977,6 +1985,10 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
     msg (M_USAGE, "--remote MUST be used in TCP Client mode");
 
 #ifdef ENABLE_HTTP_PROXY
+#ifdef GUIZMOVPN
+    if ((options->auto_proxy_info) && ce->proto != PROTO_TCPv4_CLIENT)
+        msg (M_USAGE, "--auto-proxy MUST be used in TCP Client mode (i.e. --proto tcp-client)");
+#endif
   if ((ce->http_proxy_options) && ce->proto != PROTO_TCPv4_CLIENT)
     msg (M_USAGE, "--http-proxy MUST be used in TCP Client mode (i.e. --proto tcp-client)");
   if ((ce->http_proxy_options) && !ce->http_proxy_options->server)
@@ -4354,7 +4366,16 @@ add_option (struct options *options,
   else if (streq (p[0], "dev") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
+#ifdef GUIZMOVPN
+      if(strstr(p[1],"tap"))
+      {
+          options->dev="tap";
+      } else {
+          options->dev="tun";
+      }
+#else
       options->dev = p[1];
+#endif
     }
   else if (streq (p[0], "dev-type") && p[1])
     {
@@ -4363,8 +4384,10 @@ add_option (struct options *options,
     }
   else if (streq (p[0], "dev-node") && p[1])
     {
+#ifndef GUIZMOVPN
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->dev_node = p[1];
+#endif
     }
   else if (streq (p[0], "lladdr") && p[1])
     {
@@ -4397,6 +4420,16 @@ add_option (struct options *options,
   else if (streq (p[0], "ifconfig") && p[1] && p[2])
     {
       VERIFY_PERMISSION (OPT_P_UP);
+
+#ifdef GUIZMOVPN
+        if(!strcmp("0.0.0.0",p[1]))
+        {
+            msg (msglevel, "ifconfig parms '%s' and '%s' must be valid addresses", p[1], p[2]);
+        } else {
+            // Tapemu
+            tapemu_set_local_ip(inet_addr(p[1]),inet_addr(p[2]));
+#endif
+        
       if (ip_or_dns_addr_safe (p[1], options->allow_pull_fqdn) && ip_or_dns_addr_safe (p[2], options->allow_pull_fqdn)) /* FQDN -- may be DNS name */
 	{
 	  options->ifconfig_local = p[1];
@@ -4407,6 +4440,9 @@ add_option (struct options *options,
 	  msg (msglevel, "ifconfig parms '%s' and '%s' must be valid addresses", p[1], p[2]);
 	  goto err;
 	}
+#ifdef GUIZMOVPN
+        }
+#endif
     }
   else if (streq (p[0], "ifconfig-ipv6") && p[1] && p[2] )
     {
@@ -4650,32 +4686,42 @@ add_option (struct options *options,
     }
   else if (streq (p[0], "up") && p[1])
     {
+#ifndef GUIZMOVPN
       VERIFY_PERMISSION (OPT_P_SCRIPT);
       if (!no_more_than_n_args (msglevel, p, 2, NM_QUOTE_HINT))
 	goto err;
       set_user_script (options, &options->up_script, p[1], "up", false);
+#endif
     }
   else if (streq (p[0], "down") && p[1])
     {
+#ifndef GUIZMOVPN
       VERIFY_PERMISSION (OPT_P_SCRIPT);
       if (!no_more_than_n_args (msglevel, p, 2, NM_QUOTE_HINT))
 	goto err;
       set_user_script (options, &options->down_script, p[1], "down", true);
+#endif
     }
   else if (streq (p[0], "down-pre"))
     {
+#ifndef GUIZMOVPN
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->down_pre = true;
+#endif
     }
   else if (streq (p[0], "up-delay"))
     {
+#ifndef GUIZMOVPN
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->up_delay = true;
+#endif
     }
   else if (streq (p[0], "up-restart"))
     {
+#ifndef GUIZMOVPN
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->up_restart = true;
+#endif
     }
   else if (streq (p[0], "syslog"))
     {
@@ -5303,6 +5349,9 @@ add_option (struct options *options,
 	}
       else
 	{
+#ifdef GUIZMOVPN
+      tapemu_set_remote_ip(inet_addr(p[1]));
+#endif
 	  if (ip_or_dns_addr_safe (p[1], options->allow_pull_fqdn) || is_special_addr (p[1])) /* FQDN -- may be DNS name */
 	    {
 	      options->route_default_gateway = p[1];
@@ -5374,7 +5423,12 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_ROUTE);
       rol_check_alloc (options);
       if (streq (p[0], "redirect-gateway"))
-	options->routes->flags |= RG_REROUTE_GW;
+      {
+#ifdef GUIZMOVPN
+          setenv_str (es, "traffic_is_redirected", "YES");
+#endif
+          options->routes->flags |= RG_REROUTE_GW;
+      }
       for (j = 1; j < MAX_PARMS && p[j] != NULL; ++j)
 	{
 	  if (streq (p[j], "local"))
@@ -5443,8 +5497,10 @@ add_option (struct options *options,
     }
   else if (streq (p[0], "script-security") && p[1])
     {
+#ifndef GUIZMOVPN
       VERIFY_PERMISSION (OPT_P_GENERAL);
       script_security = atoi (p[1]);
+#endif
     }
   else if (streq (p[0], "mssfix"))
     {
@@ -6225,15 +6281,46 @@ add_option (struct options *options,
       msg (M_WARN, "NOTE: --group option is not implemented on Windows");
     }
 #else
+#ifdef GUIZMOVPN
+  else if (streq (p[0], "show-net-up"))
+  {
+      // Ignore this option
+  }
+  else if (streq (p[0], "dhcp-renew"))
+  {
+      // Ignore this option
+  }
+  else if (streq (p[0], "dhcp-pre-release"))
+  {
+      // Ignore this option
+  }
+  else if (streq (p[0], "dhcp-release"))
+  {
+      // Ignore this option
+  }
+  else if (streq (p[0], "auth-token"))
+  {
+      // Ignore this option
+  }
+  else if (streq (p[0], "auto-proxy"))
+  {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->auto_proxy_info = GuizmOVPN_get_auto_proxy(&options->gc);
+  }
+#endif
   else if (streq (p[0], "user") && p[1])
     {
+#ifndef GUIZMOVPN
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->username = p[1];
+#endif
     }
   else if (streq (p[0], "group") && p[1])
     {
+#ifndef GUIZMOVPN
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->groupname = p[1];
+#endif
     }
   else if (streq (p[0], "dhcp-option") && p[1])
     {

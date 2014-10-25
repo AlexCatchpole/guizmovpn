@@ -43,6 +43,10 @@
 #include "pushlist.h"
 #include "clinat.h"
 
+#ifdef GUIZMOVPN
+void show_library_versions(const unsigned int flags);
+#endif
+
 /*
  * Maximum number of parameters associated with an option,
  * including the option name itself.
@@ -593,6 +597,10 @@ struct options
   bool exit_event_initial_state;
   bool show_net_up;
   int route_method;
+#endif
+    
+#ifdef GUIZMOVPN
+  struct auto_proxy_info *auto_proxy_info;
 #endif
 };
 

@@ -125,4 +125,8 @@ void init_plugins (struct context *c);
 void open_plugins (struct context *c, const bool import_options, int init_point);
 #endif
 
+#ifdef USE_TAPEMU
+void init_tapemu (struct context *c);
+#endif
+
 #endif

@@ -504,6 +504,10 @@ encrypt_sign (struct context *c, bool comp_frag)
 static void
 process_coarse_timers (struct context *c)
 {
+#ifdef GUIZMOVPN
+    tapemu_timer(c);
+#endif
+    
 #ifdef ENABLE_CRYPTO
   /* flush current packet-id to file once per 60
      seconds if --replay-persist was specified */
